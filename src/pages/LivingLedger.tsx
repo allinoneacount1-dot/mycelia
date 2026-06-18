@@ -6,42 +6,48 @@ const STATUSES = ['FERMENTING', 'DORMANT', 'FERMENTING', 'DECAY_DETECTED'];
 
 export default function LivingLedger() {
   const [rows, setRows] = useState<any[] | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 15;
+
+  // Generate initial rows
+  const generateInitialRows = () => [
+    {
+      id: '0xFD22...9A1B',
+      timestamp: '14:02:11:882',
+      genome: 'AMANI_MUSC_V2',
+      metabolic: '12.44 mEq/s',
+      status: 'FERMENTING'
+    },
+    {
+      id: '0xAE99...C042',
+      timestamp: '14:02:08:441',
+      genome: 'PSIL_CYAN_09',
+      metabolic: '0.82 mEq/s',
+      status: 'DORMANT'
+    },
+    {
+      id: '0xBC23...FF11',
+      timestamp: '14:01:55:012',
+      genome: 'TRIC_REES_X',
+      metabolic: '241.09 mEq/s',
+      status: 'FERMENTING'
+    },
+    {
+      id: '0x8841...B288',
+      timestamp: '14:01:30:221',
+      genome: 'LYCO_PERL_M',
+      metabolic: '4.12 mEq/s',
+      status: 'DECAY_DETECTED'
+    }
+  ];
 
   useEffect(() => {
     let timeoutId: number;
     let initialFetchId: number;
     
     initialFetchId = window.setTimeout(() => {
-      setRows([
-        {
-          id: '0xFD22...9A1B',
-          timestamp: '14:02:11:882',
-          genome: 'AMANI_MUSC_V2',
-          metabolic: '12.44 mEq/s',
-          status: 'FERMENTING'
-        },
-        {
-          id: '0xAE99...C042',
-          timestamp: '14:02:08:441',
-          genome: 'PSIL_CYAN_09',
-          metabolic: '0.82 mEq/s',
-          status: 'DORMANT'
-        },
-        {
-          id: '0xBC23...FF11',
-          timestamp: '14:01:55:012',
-          genome: 'TRIC_REES_X',
-          metabolic: '241.09 mEq/s',
-          status: 'FERMENTING'
-        },
-        {
-          id: '0x8841...B288',
-          timestamp: '14:01:30:221',
-          genome: 'LYCO_PERL_M',
-          metabolic: '4.12 mEq/s',
-          status: 'DECAY_DETECTED'
-        }
-      ]);
+      setRows(generateInitialRows());
 
       const addRow = () => {
         const now = new Date();
@@ -62,13 +68,35 @@ export default function LivingLedger() {
       };
 
       timeoutId = window.setTimeout(addRow, 2000);
-    }, 2500); // simulate 2.5s data fetch
+    }, 2500);
 
     return () => {
       clearTimeout(timeoutId);
       clearTimeout(initialFetchId);
     };
   }, []);
+
+  // Filter rows based on search
+  const filteredRows = rows?.filter(row => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return row.id.toLowerCase().includes(q) || 
+           row.genome.toLowerCase().includes(q) ||
+           row.status.toLowerCase().includes(q);
+  }) || [];
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedRows = filteredRows.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
+
+  const handlePrevPage = () => setCurrentPage(p => Math.max(1, p - 1));
+  const handleNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full relative">
@@ -87,6 +115,8 @@ export default function LivingLedger() {
               className="bg-transparent border-none text-data-mono text-on-surface placeholder:text-outline-variant w-full focus:ring-0 py-sm outline-none" 
               placeholder="SEARCH_GENOME_HASH..." 
               type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
             />
           </div>
         </div>
@@ -118,8 +148,14 @@ export default function LivingLedger() {
                       <td className="px-md py-sm"><Skeleton className="h-5 w-28" /></td>
                     </tr>
                   ))
+                ) : paginatedRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-md py-lg text-center text-on-surface-variant font-data-mono text-sm">
+                      NO_RESULTS_FOUND "{searchQuery}"
+                    </td>
+                  </tr>
                 ) : (
-                  rows.map((row) => (
+                  paginatedRows.map((row) => (
                     <tr key={row.timestamp + row.id} className="border-b border-outline-variant hover:bg-surface-variant hover:text-primary transition-colors cursor-pointer group">
                       <td className="px-md py-sm border-r border-outline-variant opacity-70 whitespace-nowrap">{row.timestamp}</td>
                       <td className="px-md py-sm border-r border-outline-variant text-secondary whitespace-nowrap">{row.id}</td>
@@ -151,6 +187,23 @@ export default function LivingLedger() {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center px-md py-sm border-t border-outline-variant bg-surface-container-lowest/50 text-[10px] font-data-mono text-on-surface-variant shrink-0">
+            <span>SHOWING {paginatedRows.length} OF {filteredRows.length} ENTRIES</span>
+            <div className="flex gap-md">
+              <button 
+                onClick={handlePrevPage} 
+                disabled={safePage <= 1}
+                className="hover:text-primary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed px-sm py-xs border border-outline-variant"
+              >◀ PREV</button>
+              <span className="px-sm py-xs">PAGE {safePage}/{totalPages}</span>
+              <button 
+                onClick={handleNextPage} 
+                disabled={safePage >= totalPages}
+                className="hover:text-primary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed px-sm py-xs border border-outline-variant"
+              >NEXT ▶</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -165,10 +218,10 @@ export default function LivingLedger() {
         </div>
         <div className="flex items-center gap-lg">
           <div className="hidden md:flex gap-md">
-            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors" href="#">TERMINAL</a>
-            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors" href="#">ERRORS</a>
-            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors" href="#">LOGS</a>
-            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors" href="#">NODES</a>
+            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('sys_log', { detail: { message: 'TERMINAL_ACCESS: REQUESTED' } }))}>TERMINAL</a>
+            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('sys_log', { detail: { message: 'ERROR_LOG: ACCESSED' } }))}>ERRORS</a>
+            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('sys_log', { detail: { message: 'SYSTEM_LOGS: OPENED' } }))}>LOGS</a>
+            <a className="text-label-caps font-label-caps text-on-surface-variant hover:text-tertiary-fixed-dim transition-colors cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('sys_log', { detail: { message: 'NODE_MAP: LOADED' } }))}>NODES</a>
           </div>
           <div className="h-4 w-px bg-outline-variant hidden md:block"></div>
           <span className="text-data-mono text-[10px] text-on-surface-variant uppercase">Protocol V.4.0.2</span>

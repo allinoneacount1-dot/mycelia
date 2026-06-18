@@ -88,7 +88,10 @@ export default function Layout() {
                 <p className="text-[10px] font-data-mono text-on-surface-variant">LEVEL_5_CONSCIOUSNESS</p>
               </div>
             </div>
-            <button className="w-full py-sm bg-primary text-on-primary font-display-sm text-[14px] active:scale-95 transition-transform hover:brightness-110 tracking-widest uppercase">
+            <button 
+              className="w-full py-sm bg-primary text-on-primary font-display-sm text-[14px] active:scale-95 transition-transform hover:brightness-110 tracking-widest uppercase"
+              onClick={() => window.dispatchEvent(new CustomEvent('sys_log', { detail: { message: 'CONSCIOUSNESS_SYNC: Initiated by NODE_09_BIO' } }))}
+            >
               SYNC CONSCIOUSNESS
             </button>
           </div>

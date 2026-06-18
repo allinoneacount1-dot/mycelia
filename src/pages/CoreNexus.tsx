@@ -1,6 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function CoreNexus() {
+  const [inputValue, setInputValue] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [fermentResult, setFermentResult] = useState<string | null>(null);
+
+  const handleFerment = async () => {
+    if (!inputValue || isProcessing) return;
+    setIsProcessing(true);
+    setFermentResult(null);
+    // Simulate fermentation process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setFermentResult(`FERMENTATION COMPLETE — Payload ${inputValue} processed. Yield: +${(Math.random() * 20 + 5).toFixed(1)}%`);
+    setIsProcessing(false);
+  };
+
+  const handleMax = () => {
+    setInputValue('1000.0000000_X');
+  };
+
   return (
     <div className="flex-1 flex flex-col relative bg-loam-black overflow-hidden microscope-grid h-full">
       <style>{`
@@ -47,10 +66,12 @@ export default function CoreNexus() {
               <input 
                 className="w-full bg-transparent border-0 border-b border-outline-variant focus:border-primary outline-none focus:ring-0 text-headline-sm font-data-mono text-primary placeholder:text-outline-variant transition-all pb-md" 
                 placeholder="0.0000000_X" 
-                type="text" 
+                type="text"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
               />
               <div className="absolute right-0 bottom-md flex gap-xs pointer-events-none">
-                <span className="text-[10px] font-data-mono text-primary px-sm border border-primary pointer-events-auto cursor-pointer">MAX</span>
+                <span className="text-[10px] font-data-mono text-primary px-sm border border-primary pointer-events-auto cursor-pointer" onClick={handleMax}>MAX</span>
               </div>
             </div>
 
@@ -65,9 +86,19 @@ export default function CoreNexus() {
               </div>
             </div>
 
-            <button className="w-full py-xl bg-primary text-on-primary font-display-sm text-headline-sm hover:translate-y-[2px] transition-all brutalist-border cursor-pointer">
-              INITIATE FERMENTATION
+            <button 
+              onClick={handleFerment}
+              disabled={isProcessing || !inputValue}
+              className="w-full py-xl bg-primary text-on-primary font-display-sm text-headline-sm hover:translate-y-[2px] transition-all brutalist-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isProcessing ? 'FERMENTING...' : 'INITIATE FERMENTATION'}
             </button>
+
+            {fermentResult && (
+              <div className="p-md border border-primary/30 bg-primary/5 font-data-mono text-[11px] text-primary animate-pulse">
+                {fermentResult}
+              </div>
+            )}
           </div>
 
           {/* Microscope Slide Aesthetic details */}
@@ -120,15 +151,25 @@ export default function CoreNexus() {
       </div>
 
       {/* The Living Ledger: Bottom-docked terminal log */}
-      <footer className="h-40 bg-surface-container-lowest border-t border-outline-variant z-40 relative group transition-all duration-500 overflow-hidden shrink-0 mt-auto">
+      <footer className={`bg-surface-container-lowest border-t border-outline-variant z-40 relative group transition-all duration-500 overflow-hidden shrink-0 mt-auto ${isExpanded ? 'h-80' : 'h-40'}`}>
         <div className="flex items-center justify-between px-md py-xs bg-outline-variant/20 border-b border-outline-variant">
           <div className="flex items-center gap-md">
             <span className="text-label-caps font-label-caps text-primary">THE_LIVING_LEDGER</span>
             <span className="text-[10px] font-data-mono text-on-surface-variant">LATEST_ENTRIES: 49,021</span>
           </div>
-          <div className="flex gap-md">
-            <span className="material-symbols-outlined text-sm text-on-surface-variant cursor-pointer hover:text-primary">keyboard_arrow_up</span>
-            <span className="material-symbols-outlined text-sm text-on-surface-variant cursor-pointer hover:text-error">close</span>
+          <div className="flex gap-md items-center">
+            <span
+              className="text-[10px] font-data-mono text-on-surface-variant cursor-pointer hover:text-primary"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? '[-] COLLAPSE' : '[+] EXPAND'}
+            </span>
+            <span
+              className="text-[10px] font-data-mono text-on-surface-variant cursor-pointer hover:text-error"
+              onClick={() => setIsExpanded(false)}
+            >
+              CLOSE
+            </span>
           </div>
         </div>
         <div className="p-md font-data-mono text-[11px] leading-relaxed text-on-surface-variant overflow-y-auto h-full space-y-1">
